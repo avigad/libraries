@@ -409,38 +409,23 @@ theorem nth_element_succ {T : Type} (x0 : T) (l : list T) (n : ℕ) :
 -- rank
 -- ----
 
-  --rank of f = position of f in a sorted list
-definition rank (f : ℕ) : list ℕ → ℕ
-:= list_rec zero (fun x l b, if ((x ≥ f) ∨ (¬ (mem f (cons x l)))) then b else (succ b))
+  --rank of f = position of f in a sorted list (provided present)
 
-theorem rank_nil (f : ℕ) : rank f nil = zero
+-- definition rank (f : ℕ) : list ℕ → ℕ
+-- := list_rec zero (fun x l b, if ((x ≥ f) ∨ (¬ (mem f (cons x l)))) then b else (succ b))
+
+definition rank (x : ℕ) : list ℕ → ℕ
+:= list_rec 0 (fun y l r,if y ≥ x then r else succ r)
+
+theorem rank_nil (x : ℕ) : rank x nil = 0
 := list_rec_nil _ _
 
-theorem rank_cons (f x : ℕ) (l : list ℕ) : rank f (cons x l) =  if ((x ≥ f) ∨ (¬ (mem f (cons x l)))) then rank f l else (succ (rank f l))
+add_rewrite rank_nil
+
+theorem rank_cons (x y : ℕ) (l : list ℕ) :
+    rank x (cons y l) = if y ≥ x then rank x l else succ (rank x l)
 := list_rec_cons _ _ _ _
 
-theorem not_mem_rank (f : ℕ) (l : list ℕ) : ¬ (mem f l) → (rank f l = zero)
-:=
-  list_induction_on l
-    (assume P1 : ¬ (mem f nil),
-      show rank f nil = zero, from rank_nil f)
-    (take x l,
-      assume H1 : (¬ (mem f l)) → (rank f l = zero),
-      assume P2 : ¬ (mem f (cons x l)),
-      have P3 :   ¬ ((mem f l) ∨ (x = f)),from subst P2 (mem_cons _ _ _),
-      have P4 :  (¬ (mem f l)) ∧ (¬ (x = f)),from subst P3 (not_or _ _),
-      have P5 : (¬ (mem f l))               ,from and_elim_left P4,
-      have P6 : (x ≥ f) ∨ (¬(mem f (cons x l))),from or_intro_right (x ≥ f) P2,
-      have H2 : ((x ≥ f) ∨ (¬(mem f l))) ,from or_intro_right (x ≥ f) P5,
-      have P7 : rank f (cons x l) =
-          if (x ≥ f ∨ ¬ (mem f (cons x l))) then rank f l else succ (rank f l),
-        from (rank_cons _ _ _),
-      have P8 : (if ((x ≥ f) ∨ (¬ (mem f (cons x l)))) then rank f l else succ (rank f l)) =
-          rank f l,
-        from imp_if_eq P6 _ _,
-      have P9 : rank f (cons x l) = rank f l, from trans P7 P8,
-      have H5 : rank f l = zero, from H1 P5,
-      show rank f (cons x l) = zero, from trans P9 H5)
 
 -- Sorting a list of natural numbers
 -- ---------------------------------
@@ -452,6 +437,8 @@ definition insert (n : ℕ) : list ℕ → list ℕ
 theorem insert_nil (n : ℕ) : insert n nil = cons n nil
 := list_rec_nil _ _
 
+add_rewrite insert_nil
+
 theorem insert_cons (n m : ℕ) (l : list ℕ) : insert n (cons m l) =
     (if n ≥ m then cons m (insert n l) else cons n (cons m l))
 :=list_rec_cons _ _ _ _
@@ -459,8 +446,22 @@ theorem insert_cons (n m : ℕ) (l : list ℕ) : insert n (cons m l) =
 definition asort : list ℕ → list ℕ
 := list_rec nil (fun x l b, insert x b)
 
+--What about these 2 definitions.Ofcourse perm is valid only for elements having natural ordering..
+definition sorted (a : list ℕ) := ∃ l, a = asort l
+definition perm (a b : list ℕ) := asort a = asort b
+-- 
+-- TO PROOVE
+-- theorem asort_asort : asort (asort l) = l
+-- merging routine?
+
+
+definition dsort (l : list ℕ) : list ℕ
+:= reverse (asort l)
+
 theorem asort_nil : asort nil = nil
 := list_rec_nil _ _
+
+add_rewrite asort_nil
 
 theorem asort_cons (n : ℕ) (l : list ℕ) : asort (cons n l) = insert n (asort l)
 := list_rec_cons _ _ _ _
@@ -488,7 +489,7 @@ theorem mem_tail {T : Type} (f : T) (l : list T) : mem f (tail l) → mem f l
     have H2  : (mem f l) ∨ (x = f),from (or_intro_left _ H1),
     show mem f (cons x l),from subst H2 (symm (mem_cons x f l)))
 
-theorem mem_insert (n m : ℕ) (l : list ℕ) : mem n (insert m l) → (mem n l) ∨ (m = n)
+theorem mem_insert1 (n m : ℕ) (l : list ℕ) : mem n (insert m l) → (mem n l) ∨ (m = n)
 :=
   list_induction_on l
     (assume H1 : mem n (insert m nil),
@@ -499,7 +500,7 @@ theorem mem_insert (n m : ℕ) (l : list ℕ) : mem n (insert m l) → (mem n l)
        assume P : mem n (insert m (cons x l)),
        have P1 : mem n (if m ≥ x then cons x (insert m l) else cons m (cons x l)),
          from subst P (insert_cons _ _ _),
-       by_cases                         --To break the if-else structure in P1
+       by_cases _
          (assume Q : m ≥ x,
            have Q1 : mem n (cons x (insert m l)), from subst P1 (imp_if_eq Q _ _),
            have Q2 : mem n (insert m l) ∨ (x = n), from subst Q1 (mem_cons _ _ _),
@@ -507,88 +508,204 @@ theorem mem_insert (n m : ℕ) (l : list ℕ) : mem n (insert m l) → (mem n l)
            have Q4 : ((((mem n l) ∨ (m = n)) ∨ (x = n)) = (((mem n l) ∨ (x = n)) ∨ (m = n))),
              by simp,
            show mem n (cons x l) ∨ (m = n), from subst (Q4 ◂ Q3) (symm (mem_cons _ _ _)))
-        (assume R : ¬ (m ≥ x),              --Else condition
+        (assume R : ¬ (m ≥ x),
            have R1 : mem n (cons m (cons x l)), from subst P1 (not_imp_if_eq R _ _),
            show mem n (cons x l) ∨ (m = n), from (mem_cons _ _ _) ◂ R1))
 
+theorem mem_insert2 (n m : ℕ) (l : list ℕ) : (mem n l) ∨ (m = n) → mem n (insert m l)
+:=
+  list_induction_on l
+    (assume H : mem n nil ∨ (m = n),
+      have H1 : mem n (cons m nil),from subst H (symm (mem_cons _ _ _)),
+      show mem n (insert m nil), from subst H1 (symm (insert_nil _)))
+    (take x l,
+      assume H : (mem n l) ∨ (m = n) → mem n (insert m l),
+      assume P : (mem n (cons x l)) ∨ (m = n),
+      have P1  : (mem n l ∨ (x = n)) ∨ (m = n),from subst P (mem_cons _ _ _),
+      have P2  : (mem n l ∨ (m = n)) ∨ (x = n),from subst P1 (or_right_comm _ _ _),
+      have P3  : mem n (insert m l) ∨ (x = n),from or_imp_or_left P2 H,
+ by_cases _
+    (assume Q : m ≥ x,
+       have Q1 : mem n (cons x (insert m l)),from subst P3 (symm (mem_cons _ _ _)),
+       have Q2 : mem n (if m ≥ x then cons x (insert m l) else cons m (cons x l)),from subst Q1 (symm (imp_if_eq Q _ _)),
+       show  mem n (insert m (cons x l)), from subst Q2 (symm (insert_cons _ _ _)))
+    (assume R : ¬ (m ≥ x),
+       have R1 : mem n (cons m (cons x l)),from subst P (symm (mem_cons m n (cons x l))),
+       have R2 : mem n (if m ≥ x then cons x (insert m l) else cons m (cons x l)) ,from subst R1 (symm (not_imp_if_eq R _ _)),
+      show mem n (insert m (cons x l)),from subst R2 (symm (insert_cons _ _ _))))
 
+theorem mem_insert (n m : ℕ) (l : list ℕ) : mem n (insert m l) ↔ (mem n l) ∨ (m = n)
+:= iff_intro (mem_insert1 _ _ _) (mem_insert2 _ _ _)
 
+theorem mem_asort1 (s : ℕ) (l : list ℕ) : mem s (asort l) → mem s l
+:= list_induction_on l
+  (assume H : mem s (asort nil),
+    show mem s nil ,from subst H (asort_nil))
+  (take x l,
+    assume P : mem s (asort l) → mem s l,
+    assume H : mem s (asort (cons x l)),
+    have H1  : mem s (insert x (asort l)),from subst H (asort_cons _ _),
+    have H2  : mem s (asort l) ∨ (x = s), from (mem_insert1 _ _ _) H1,
+    have H3  : mem s l ∨ (x = s),from or_imp_or_left H2 P,
+    show mem s (cons x l), from subst H3 (symm (mem_cons _ _ _)))
 
--- theorem mem_whateva (x0 f g : ℕ) (l : list ℕ) : (¬ mem f l) ∧ (g ≠ f) → ¬ mem f (insert x0 g l)
--- := list_induction_on l
--- (
---  assume H1 : (¬ mem f nil) ∧ (g ≠ f),
---  have H2   : ¬ (mem f nil ∨ (g = f)), from subst H1 (symm (not_or _ _)),
---  have H3   : ¬ (mem f (cons g nil)), from subst H2 (symm (mem_cons _ _ _)),
---  show        ¬ (mem f (insert x0 g nil)),from subst H3 (symm (nil_insert _ _)))
+theorem mem_asort2 (s : ℕ) (l : list ℕ) : mem s l → mem s (asort l)
+:= list_induction_on l
+  (assume H : mem s nil,
+    show mem s (asort nil) ,from subst H (symm (asort_nil)))
+  (take x l,
+    assume P : mem s l → mem s (asort l),
+    assume H : mem s (cons x l),
+    have H1  : mem s l ∨ (x = s) ,from subst H (mem_cons _ _ _),
+    have H2  : mem s (asort l) ∨ (x = s) ,from or_imp_or_left H1 P,
+    have H3  : mem s (insert x (asort l)) ,from (mem_insert2 _ _ _) H2,
+    show mem s (asort (cons x l)) ,from subst H3 (symm (asort_cons _ _)))
 
--- ( take x l,
---   assume H : (¬ mem f l) ∧ (g ≠ f) → ¬ mem f (insert x0 g l),
---   assume P :  ¬ mem f (cons x l) ∧ (g ≠ f),
---   have P1 : ¬ (mem f l ∨ (x = f)),from subst P (mem_cons _ _ _),
---   have P2 : (¬ mem f l) ∧ (x ≠ f),from subst P1 (not_or _ _),
+theorem mem_asort (s : ℕ) (l : list ℕ) : mem s (asort l) ↔ mem s l
+:= iff_intro (mem_asort1 _ _) (mem_asort2 _ _)
 
+theorem if_else_intro (a b c : Bool) (H1 : a → b) (H2 : ¬ a → c) : if a then b else c
+:=
+  by_cases _
+    (assume H : a, (by simp) (H1 H))
+    (assume H : ¬ a, (by simp) (H2 H))
 
+ -- This is a good target for shortening
+ -- With splitting on cases, and adding insert_cons and rank_cons, this should be
+ -- one line: list_induction_on l (by simp) (by simp)
+theorem rank_insert (x y : ℕ) (l : list ℕ) : rank x (insert y l) =
+    (if y ≥ x then rank x l else succ (rank x l))
+:=
+  by_cases _
+    (assume H : y ≥ x,
+      list_induction_on l
+        ((by simp) (rank_cons x y nil))
+        (take z l,
+          assume IH : rank x (insert y l) = (if y ≥ x then rank x l else succ (rank x l)),
+          by_cases _
+            (assume H1 : y ≥ z,
+              by_cases _
+                (assume H2 : z ≥ x,
+                  (by simp) (insert_cons y z l) (rank_cons x z (insert y l)) (rank_cons x z l))
+                (assume H2 : ¬ z ≥ x,
+                  (by simp) (insert_cons y z l) (rank_cons x z (insert y l)) (rank_cons x z l)))
+            (assume H1 : ¬ y ≥ z,
+              by_cases _
+                (assume H2 : z ≥ x,
+                  (by simp) (insert_cons y z l) (rank_cons x z (insert y l)) (rank_cons x z l)
+                    (rank_cons x y (cons z l)))
+                (assume H2 : ¬ z ≥ x,
+                  (by simp) (insert_cons y z l) (rank_cons x z (insert y l)) (rank_cons x z l)
+                    (rank_cons x y (cons z l))))))
+    (assume H : ¬ y ≥ x,
+      list_induction_on l
+        ((by simp) (rank_cons x y nil))
+        (take z l,
+          assume IH : rank x (insert y l) = (if y ≥ x then rank x l else succ (rank x l)),
+          by_cases _
+            (assume H1 : y ≥ z,
+              by_cases _
+                (assume H2 : z ≥ x,
+                  (by simp) (insert_cons y z l) (rank_cons x z (insert y l)) (rank_cons x z l))
+                (assume H2 : ¬ z ≥ x,
+                  (by simp) (insert_cons y z l) (rank_cons x z (insert y l)) (rank_cons x z l)))
+            (assume H1 : ¬ y ≥ z,
+              by_cases _
+                (assume H2 : z ≥ x,
+                  (by simp) (insert_cons y z l) (rank_cons x z (insert y l)) (rank_cons x z l)
+                    (rank_cons x y (cons z l)))
+                (assume H2 : ¬ z ≥ x,
+                  (by simp) (insert_cons y z l) (rank_cons x z (insert y l)) (rank_cons x z l)
+                    (rank_cons x y (cons z l))))))
 
+-- theorem find_insert (x y : ℕ) (l : list ℕ) : find x (insert y (asort l)) =  (if y ≥ x then find x (asort l) else succ (find x (asort l)))
+-- :=
+--  by_cases _
+--    (assume H : y ≥ x,
+--     list_induction_on l
+--      ((by simp) (asort_nil) (insert_nil y) (find_cons x y nil) 
+--      (find_nil x))
+--    (take z l,
+--     assume IH : find x (insert y (asort l)) =  (if y ≥ x then find x l else succ (find x l)),
+--        by_cases _
+--          (assume H1 : y ≥ z,
+--          by_cases _
+--           (assume H2 :  z ≥ x,
+--           (by simp) (asort_cons z l) (insert_cons _ _ l) (find_cons _ _ l))
+--           (assume H2 : ¬ z ≥ x,
+--           (by simp) (insert_cons _ _ l) (find_cons _ _ l)))
+--         (assume H1 : ¬ y ≥ z,
+--           by_cases _
+--           (assume H2 : z ≥ x,
+--            (by simp) (insert_cons _ _ l) (find_cons _ _ l))
+--           (assume H2 : ¬ z ≥ x,
+--            (by simp) (insert_cons _ _ l) (find_cons _ _ l))))
+--    (assume H : ¬ y ≥ x,
+--      list_induction_on l
+--      ((by simp) (asort_nil) (insert_nil y) (find_cons x y nil) 
+--      (find_nil x))
+--    (take z l,
+--     assume IH : find x (insert y (asort l)) =  (if y ≥ x then find x l else succ (find x l)),
+--        by_cases _
+--          (assume H1 : y ≥ z,
+--          by_cases _
+--           (assume H2 :  z ≥ x,
+--           (by simp) (asort_cons z l) (insert_cons _ _ l) (find_cons _ _ l))
+--           (assume H2 : ¬ z ≥ x,
+--           (by simp) (insert_cons _ _ l) (find_cons _ _ l)))
+--         (assume H1 : ¬ y ≥ z,
+--           by_cases _
+--           (assume H2 : z ≥ x,
+--            (by simp) (insert_cons _ _ l) (find_cons _ _ l))
+--           (assume H2 : ¬ z ≥ x,
+--            (by simp) (insert_cons _ _ l) (find_cons _ _ l))))))
 
--- theorem bwah (x0 : ℕ) (f : ℕ) (l : list ℕ) : ¬ mem f l → ¬ mem f (asort x0 l)
--- := list_induction_on l
--- ( assume H : ¬ mem f nil,
---   have H1  : (¬ mem f (asort x0 nil)) = (¬ mem f (nil)), from congr2 (fun x : list ℕ , ¬ mem f x) (asort_nil x0),
---   have H2  : (¬ mem f nil) = (¬ false),from congr2 (fun x : Bool , ¬ x) (mem_nil f),
---   have H3  : ¬ false, from not_false_trivial,
---   have H4  : ¬ mem f nil ,from subst H3 (symm H2),
---   show  ¬ mem f (asort x0 nil) ,from subst H4 (symm H1) )
--- ( take x l,
---   assume H  : ¬ mem f l → ¬ mem f (asort x0 l),
---   assume P1 : ¬ mem f (cons x l),
---   assume P2 : ¬ mem f (cons x (cons m n)) = long int (int )
---   have R    : ¬ mem f
+theorem asort_rank (x : ℕ) (l : list ℕ) : rank x l = rank x (asort l)
+:=
+  list_induction_on l
+    (show rank x nil = rank x (asort nil), by simp)
+    (take y l,
+       assume IH : rank x l = rank x (asort l),
+       by_cases _
+         (assume P : y ≥ x,
+           (by simp) (rank_cons x y l) (asort_cons y l) (rank_insert x y (asort l)))
+         (assume P : ¬ y ≥ x,
+           (by simp) (rank_cons x y l) (asort_cons y l) (rank_insert x y (asort l))))
 
+---Needed?
 
+-- axiom ge_gt_eq (x y : ℕ) : (x ≥ y) ↔ (x > y) ∨ (x = y)
 
+theorem le_iff_lt_or_eq (x y : ℕ) : (x ≤ y) ↔ (x < y) ∨ (x = y)
+:=
+  iff_intro (le_imp_lt_or_eq) 
+    (take H, or_elim H lt_imp_le (assume H1 : x = y,  subst (le_refl x) H1))
 
--- definition dsort (x0 : ℕ) (l : list ℕ) : list ℕ
--- := reverse (asort x0 l)
+theorem ge_gt_eq (x y : ℕ) : (x ≥ y) ↔ (x > y) ∨ (x = y)
+:=
+  iff_intro
+    (take H, or_elim (le_imp_lt_or_eq H) (take H1, or_intro_left _ H1) (take H1, or_intro_right _ (symm H1))) 
+    (take H, or_elim H lt_imp_le (assume H1 : x = y,  subst (le_refl x) H1))
+  
+-- definition ge_gt_eq (x y : ℕ) : (x ≥ y) ↔ (x > y) ∨ (x = y)
 
--- theorem asort_rank (f : ℕ) (l : list ℕ) : rank f l = rank f (asort x0 l)
--- := list_rec (
--- show rank f nil = rank f (asort x0 nil), from congr2 _ (symm (asort_nil x0))
--- ) (
--- take x l,
--- assume H1 : rank f l = rank f (asort x0 l)
--- by_cases (mem f (cons x l)) _
--- (assume P : ¬ mem f (cons x l),
---  have  P1 : rank f (cons x l) = zero ,from (neg_mem_rank _ _ H1),
---  have  P2 :
+---fetch recent to elimante the following two axioms
+axiom gt_def (n m : ℕ) : n > m ↔ m < n
+axiom lt_imp_not_ge {n m : ℕ} (H : n < m) : ¬ n ≥ m
 
+-- axiom sorry {P : Bool} : P
 
+-- theorem insert_comm_aux (x y : ℕ) (H : x < y) (l : list ℕ) : insert x (insert y l) = insert y (insert x l)
 
+-- definition map {T : Type} {S : Type} (P : T → S) (x0 : S) : list T → list S
+-- := list_rec (cons x0 nil) (fun x l b, cons (P x) b)
 
+-- definition foldr {T : Type} {S : Type} (f : T → T → T) (x0 : T) : list T → T
+-- := list_rec x0 (fun x l b,f x b)
 
--- ) l
+-- -- l = x [a b c d]
+-- -- b =  f(c f( b (f a d))))      f( a (f b (f c d)))  f (f (f a b) c) d
+-- -- r =  f (c f(b f(a (f x d))))  f  a  f  b  f c d    f  ( f (f  ( f x a) b) c) d
 
-
-
-
--- theorem rank_asort (x0 f : ℕ) (l : list ℕ) : rank f l = position f (asort x0 l)
--- := by_cases (mem f l) _
--- (assume H1 : ¬ (mem f l),
---  have P   : rank f l = zero ,from (neg_mem_rank _ _ H1),
---  have Q   : zero  = position f l ,from (symm (neg_mem_position _ _ H1)),
---  show rank f l = position f l ,from trans P Q)
-
-
-definition map {T : Type} {S : Type} (P : T → S) (x0 : S) : list T → list S
-:= list_rec (cons x0 nil) (fun x l b, cons (P x) b)
-
-definition foldr {T : Type} {S : Type} (f : T → T → T) (x0 : T) : list T → T
-:= list_rec x0 (fun x l b,f x b)
-
--- l = x [a b c d]
--- b =  f(c f( b (f a d))))      f( a (f b (f c d)))  f (f (f a b) c) d
--- r =  f (c f(b f(a (f x d))))  f  a  f  b  f c d    f  ( f (f  ( f x a) b) c) d
-
-definition last {T : Type} (x0 : T) (l : list T) : T
-:= head x0 (reverse l)
-
+-- definition last {T : Type} (x0 : T) (l : list T) : T
+-- := head x0 (reverse l)
