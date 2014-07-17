@@ -43,9 +43,9 @@ theorem insert_comm_aux (x y : ℕ) (H : x < y) (l : list ℕ) : insert x (inser
     (take z l, 
       assume IH : insert x (insert y l) = insert y (insert x l),
       show insert x (insert y (cons z l)) = insert y (insert x (cons z l)), from 
-        or_elim (le_or_lt z y)
+        or_elim (le_or_gt z y)
           (assume H1 : z ≤ y, 
-            or_elim (le_or_lt z x)
+            or_elim (le_or_gt z x)
               (assume H2 : z ≤ x, by simp)
               (assume H2 : x < z, 
                 have H3 : x ≤ y, from lt_imp_le H,

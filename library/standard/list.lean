@@ -500,7 +500,7 @@ theorem mem_insert1 (n m : ℕ) (l : list ℕ) : mem n (insert m l) → (mem n l
        assume P : mem n (insert m (cons x l)),
        have P1 : mem n (if m ≥ x then cons x (insert m l) else cons m (cons x l)),
          from subst P (insert_cons _ _ _),
-       by_cases _
+       by_cases
          (assume Q : m ≥ x,
            have Q1 : mem n (cons x (insert m l)), from subst P1 (imp_if_eq Q _ _),
            have Q2 : mem n (insert m l) ∨ (x = n), from subst Q1 (mem_cons _ _ _),
@@ -524,7 +524,7 @@ theorem mem_insert2 (n m : ℕ) (l : list ℕ) : (mem n l) ∨ (m = n) → mem n
       have P1  : (mem n l ∨ (x = n)) ∨ (m = n),from subst P (mem_cons _ _ _),
       have P2  : (mem n l ∨ (m = n)) ∨ (x = n),from subst P1 (or_right_comm _ _ _),
       have P3  : mem n (insert m l) ∨ (x = n),from or_imp_or_left P2 H,
- by_cases _
+ by_cases
     (assume Q : m ≥ x,
        have Q1 : mem n (cons x (insert m l)),from subst P3 (symm (mem_cons _ _ _)),
        have Q2 : mem n (if m ≥ x then cons x (insert m l) else cons m (cons x l)),from subst Q1 (symm (imp_if_eq Q _ _)),
@@ -566,7 +566,7 @@ theorem mem_asort (s : ℕ) (l : list ℕ) : mem s (asort l) ↔ mem s l
 
 theorem if_else_intro (a b c : Bool) (H1 : a → b) (H2 : ¬ a → c) : if a then b else c
 :=
-  by_cases _
+  by_cases
     (assume H : a, (by simp) (H1 H))
     (assume H : ¬ a, (by simp) (H2 H))
 
@@ -576,21 +576,21 @@ theorem if_else_intro (a b c : Bool) (H1 : a → b) (H2 : ¬ a → c) : if a the
 theorem rank_insert (x y : ℕ) (l : list ℕ) : rank x (insert y l) =
     (if y ≥ x then rank x l else succ (rank x l))
 :=
-  by_cases _
+  by_cases
     (assume H : y ≥ x,
       list_induction_on l
         ((by simp) (rank_cons x y nil))
         (take z l,
           assume IH : rank x (insert y l) = (if y ≥ x then rank x l else succ (rank x l)),
-          by_cases _
+          by_cases
             (assume H1 : y ≥ z,
-              by_cases _
+              by_cases
                 (assume H2 : z ≥ x,
                   (by simp) (insert_cons y z l) (rank_cons x z (insert y l)) (rank_cons x z l))
                 (assume H2 : ¬ z ≥ x,
                   (by simp) (insert_cons y z l) (rank_cons x z (insert y l)) (rank_cons x z l)))
             (assume H1 : ¬ y ≥ z,
-              by_cases _
+              by_cases
                 (assume H2 : z ≥ x,
                   (by simp) (insert_cons y z l) (rank_cons x z (insert y l)) (rank_cons x z l)
                     (rank_cons x y (cons z l)))
@@ -602,15 +602,15 @@ theorem rank_insert (x y : ℕ) (l : list ℕ) : rank x (insert y l) =
         ((by simp) (rank_cons x y nil))
         (take z l,
           assume IH : rank x (insert y l) = (if y ≥ x then rank x l else succ (rank x l)),
-          by_cases _
+          by_cases
             (assume H1 : y ≥ z,
-              by_cases _
+              by_cases
                 (assume H2 : z ≥ x,
                   (by simp) (insert_cons y z l) (rank_cons x z (insert y l)) (rank_cons x z l))
                 (assume H2 : ¬ z ≥ x,
                   (by simp) (insert_cons y z l) (rank_cons x z (insert y l)) (rank_cons x z l)))
             (assume H1 : ¬ y ≥ z,
-              by_cases _
+              by_cases
                 (assume H2 : z ≥ x,
                   (by simp) (insert_cons y z l) (rank_cons x z (insert y l)) (rank_cons x z l)
                     (rank_cons x y (cons z l)))
@@ -620,22 +620,22 @@ theorem rank_insert (x y : ℕ) (l : list ℕ) : rank x (insert y l) =
 
 -- theorem find_insert (x y : ℕ) (l : list ℕ) : find x (insert y (asort l)) =  (if y ≥ x then find x (asort l) else succ (find x (asort l)))
 -- :=
---  by_cases _
+--  by_cases
 --    (assume H : y ≥ x,
 --     list_induction_on l
 --      ((by simp) (asort_nil) (insert_nil y) (find_cons x y nil) 
 --      (find_nil x))
 --    (take z l,
 --     assume IH : find x (insert y (asort l)) =  (if y ≥ x then find x l else succ (find x l)),
---        by_cases _
+--        by_cases
 --          (assume H1 : y ≥ z,
---          by_cases _
+--          by_cases
 --           (assume H2 :  z ≥ x,
 --           (by simp) (asort_cons z l) (insert_cons _ _ l) (find_cons _ _ l))
 --           (assume H2 : ¬ z ≥ x,
 --           (by simp) (insert_cons _ _ l) (find_cons _ _ l)))
 --         (assume H1 : ¬ y ≥ z,
---           by_cases _
+--           by_cases
 --           (assume H2 : z ≥ x,
 --            (by simp) (insert_cons _ _ l) (find_cons _ _ l))
 --           (assume H2 : ¬ z ≥ x,
@@ -646,15 +646,15 @@ theorem rank_insert (x y : ℕ) (l : list ℕ) : rank x (insert y l) =
 --      (find_nil x))
 --    (take z l,
 --     assume IH : find x (insert y (asort l)) =  (if y ≥ x then find x l else succ (find x l)),
---        by_cases _
+--        by_cases
 --          (assume H1 : y ≥ z,
---          by_cases _
+--          by_cases
 --           (assume H2 :  z ≥ x,
 --           (by simp) (asort_cons z l) (insert_cons _ _ l) (find_cons _ _ l))
 --           (assume H2 : ¬ z ≥ x,
 --           (by simp) (insert_cons _ _ l) (find_cons _ _ l)))
 --         (assume H1 : ¬ y ≥ z,
---           by_cases _
+--           by_cases
 --           (assume H2 : z ≥ x,
 --            (by simp) (insert_cons _ _ l) (find_cons _ _ l))
 --           (assume H2 : ¬ z ≥ x,
@@ -666,7 +666,7 @@ theorem asort_rank (x : ℕ) (l : list ℕ) : rank x l = rank x (asort l)
     (show rank x nil = rank x (asort nil), by simp)
     (take y l,
        assume IH : rank x l = rank x (asort l),
-       by_cases _
+       by_cases
          (assume P : y ≥ x,
            (by simp) (rank_cons x y l) (asort_cons y l) (rank_insert x y (asort l)))
          (assume P : ¬ y ≥ x,
